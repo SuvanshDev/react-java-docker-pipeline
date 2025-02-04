@@ -1,11 +1,6 @@
-<<<<<<< HEAD
 # react-java-docker-pipeline
 "A containerized full-stack web app (Java backend, React frontend) with automated CI/CD using GitHub Actions and Docker Hub."
-=======
-# Docker Mastery
-
-This project is intented to use with exercises for Docker Mastery course by tdevs.in.
-
+======
 ## Environment Variables
 
 This project uses below environment variables:
@@ -134,4 +129,3 @@ npm run build
 This command will generate some files inside `frontend/build` folder. **Copy all the content of `frontend/build` folder to `src/main/resources/static`**. Now your spring boot application will serve the frontend instead of a separate `npm` server.
 
 You can now shut down the frontend service and restart the application using `./mvnw spring-boot:run` command. Go to your browser and type `http://localhost:8080` and it will open the frontend page listing all the available todos.
->>>>>>> 870d1d1 (Initial commit with project setup)
