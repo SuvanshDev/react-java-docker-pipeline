@@ -142,7 +142,7 @@ docker run -it --network=todo -p 8081:8080 -e DB_URL=jdbc:mysql://tododb:3306/do
 
 ### 🚀 Deploying with GitHub Actions
 - Push changes to the `develop` branch.  
-- GitHub Actions will automatically build and push the image to **Docker Hub**.  
+- GitHub Actions will automatically build and push the image to **Docker Hub** : https://hub.docker.com/repository/docker/fullstacktechie/react_java_docker_pipeline/general 
 
 ---
 
