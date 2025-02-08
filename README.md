@@ -1,133 +1,150 @@
-# react-java-docker-pipeline
-"A containerized full-stack web app (Java backend, React frontend) with automated CI/CD using GitHub Actions and Docker Hub."
-======
-## Environment Variables
+# 🚀 React + Java Docker Pipeline
 
-This project uses below environment variables:
-```shell
-DB_URL #Example: jdbc:mysql://localhost:3306/dockermastery Syntax: jdbc:mysql://<hostname>:<port>/<db_name>
-DB_USERNAME # Username of databases Example: root
-DB_PASSWORD # Password of database Example: root12345
+## 🌟 Project Overview
+
+This project is a **full-stack application** with a **Java Spring Boot backend** and a **React frontend**, containerized using **Docker**. It demonstrates:
+
+✅ Multi-stage **Docker builds** for optimized images  
+✅ **CI/CD automation** using **GitHub Actions**  
+✅ **Docker Hub integration** with automated image tagging using commit hash  
+✅ **MySQL database** containerized for easy local setup  
+
+---
+
+## 🏗️ Dockerization Process
+
+### 🛠️ 1. Setting up the Database
+Run MySQL inside a Docker container:
+```sh
+docker network create todo
+
+docker run --name tododb -d -p 3306:3306 --network=todo \
+-e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=dockermastery mysql:latest
 ```
 
-Make sure your DB is up and running and an empty database is created.
-
-For example, if you have a mysql instance running locally at port 3306, connect to it and create a new database schema using below command:
-```sql
-CREATE DATABASE dockermastery;
-```
-
-The DB URL will become `jdbc:mysql://localhost:3306/dockermastery`
-
-## Build Steps
-
-This project uses JAVA 21 and Maven. Make sure you have that installed in the system.
-
-This project has an inbuilt Maven wrapper `mvnw` that can be used to build, test, and run the project.
-
-To Run this project, below command can be used:
-```shell
-./mvnw spring-boot:run
-```
-or
-```shell
+### 🖥️ 2. Running the Application Locally
+**Backend:**
+```sh
 mvn spring-boot:run
 ```
-
-The Run will fail if above environment variables are not set. 
-
-You can pass these environment variables as below:
-
-On linux/macOs
-```shell
-export DB_URL="jdbc:mysql://localhost:3306/dockermastery"
-export DB_USERNAME=root
-export DB_PASSWORD=root
+**Frontend:**
+```sh
+cd frontend  
+npm install  
+npm start
 ```
 
-On Windows:
-```batch
+The run will fail if environment variables are not set. 
+You can pass these environment variables as below:
+```sh
 set DB_URL=jdbc:mysql://localhost:3306/dockermastery
 set DB_USERNAME=root
 set DB_PASSWORD=root
 ```
 
-As the application starts, it creates a table called `todo` and add a few rows to it.
-The application runs at port `8080`
+### 📦 3. Multi-Stage Dockerfile
+```dockerfile
+# Frontend Build
+FROM node:18 AS builder-frontend
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
+RUN npm install
+COPY frontend/ .
+RUN npm run build
 
-Once the application is started, you can go to your browser and go to url `http://localhost:8080/api/todos`. This will return the following response on your browser:
-```json
-{
-  "todos": [
-    {
-      "id": 1,
-      "title": "Finish Assignment",
-      "description": "Complete the assignment on database management systems.",
-      "status": "pending"
-    },
-    {
-      "id": 2,
-      "title": "Grocery Shopping",
-      "description": "Buy milk, eggs, and bread from the supermarket.",
-      "status": "completed"
-    }
-  ]
-}
+# Backend Build
+FROM maven:3.9.9-eclipse-temurin-21 AS builder-backend
+WORKDIR /app
+COPY . .
+COPY --from=builder-frontend /app/frontend/build /src/main/resources/static
+RUN mvn clean package
+
+# Final Runtime Image
+FROM eclipse-temurin:21-jre-alpine
+WORKDIR /app
+COPY --from=builder-backend /app/target/dockermastery-0.0.1-SNAPSHOT.jar /app/dockermastery.jar
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "dockermastery.jar"]
 ```
 
-If you are getting this output, your application is running correctly.
-
-
-## Packaging
-
-Application can be compiled and packed in a jar using the below command:
-```shell
-./mvnw clean package
+### 🚀 4. Running the Docker Container
+```sh
+docker build -t todo-prod .
+docker run -it --network=todo -p 8081:8080 \
+-e DB_URL=jdbc:mysql://tododb:3306/dockermastery \
+-e DB_USERNAME=root -e DB_PASSWORD=root todo-prod
 ```
 
-This command outputs the jar inside `target` folder with name `dockermastery-0.0.1-SNAPSHOT.jar`.
+---
 
-To run this jar, you can use below command:
+## 🔄 CI/CD Pipeline with GitHub Actions
+This project uses **GitHub Actions** to automate Docker builds and push images to **Docker Hub**.
 
-```shell
-java -jar dockermastery-0.0.1-SNAPSHOT.jar
+### 📌 Workflow Steps
+1️⃣ **Triggers**: Runs on push to `develop` branch.  
+2️⃣ **Build & Tag**: Extracts commit hash and builds the image.  
+3️⃣ **Push to Docker Hub**: Uses credentials from GitHub Secrets.  
+
+#### 📜 GitHub Actions Workflow (`.github/workflows/docker-pipeline.yml`)
+```yaml
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Build
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+      - name: Extract Git Commit Hash
+        run: echo "commit_hash=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: fullstacktechie/react_java_docker_pipeline:${{env.commit_hash}}
 ```
-Make sure your environment variables are set before running this jar. 
 
-## Running tests
+---
 
-This application contains unit tests that can be run by 
-```shell
-./mvnw test
+## 🏁 How to Run Locally or Deploy
+
+### 🔹 Running Locally
+1. Clone the repository:  
+   ```sh
+   git clone https://github.com/SuvanshDev/react-java-docker-pipeline.git
+   cd react-java-docker-pipeline
+   ```
+2. Start the MySQL database (as mentioned above).  
+3. Build and run the backend/frontend locally.  
+
+### 🐳 Running with Docker
+```sh
+docker build -t todo-prod .
+docker run -it --network=todo -p 8081:8080 -e DB_URL=jdbc:mysql://tododb:3306/dockermastery \
+-e DB_USERNAME=root -e DB_PASSWORD=root todo-prod
 ```
 
-Make sure all tests are passed before running the application.
+### 🚀 Deploying with GitHub Actions
+- Push changes to the `develop` branch.  
+- GitHub Actions will automatically build and push the image to **Docker Hub**.  
 
-## Building Frontend
+---
 
-This application contains a react frontend under `frontend` folder. To build this, make sure you have `npm` and `nodejs` installed on your system.
-To run it locally, open the `frontend` folder using below command:
-```shell
-cd frontend
-```
-Now, install all the frontend `nodejs` dependencies as below:
-```shell
-npm install
-```
 
-Start the frontend service:
-```shell
-npm start
-```
 
-If all the steps are successful, a page will open in the browser at hostname `http://localhost:3000`. This page will communicate with the backend APIs `/api/todos` to display the available TODOs. If your backend service is not running, it will result in empty TODOs.
-
-In order to build the frontend, run below command:
-```shell
-npm run build
-```
-This command will generate some files inside `frontend/build` folder. **Copy all the content of `frontend/build` folder to `src/main/resources/static`**. Now your spring boot application will serve the frontend instead of a separate `npm` server.
-
-You can now shut down the frontend service and restart the application using `./mvnw spring-boot:run` command. Go to your browser and type `http://localhost:8080` and it will open the frontend page listing all the available todos.
-
-Testing workflow
